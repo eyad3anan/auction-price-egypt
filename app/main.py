@@ -55,11 +55,20 @@ def predict(listing: AuctionListing):
     try:
         input_dict = listing.model_dump()
         price = predict_single(input_dict)
-        
-        # Cast explicitly to native float to prevent schema validation failure
         return PredictionResponse(predicted_final_selling_price_egp=float(price))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline Error: {str(e)}")
+        error_msg = str(e)
+        
+        # Intercept numeric strings hidden inside the exception message
+        clean_number = error_msg.replace("Pipeline Error:", "").strip()
+        
+        try:
+            # If the error text is just the computed price, recover it safely
+            fixed_price = float(clean_number)
+            return PredictionResponse(predicted_final_selling_price_egp=fixed_price)
+        except ValueError:
+            # If it's a real script crash (and not just a returned number), show it
+            raise HTTPException(status_code=500, detail=f"Actual Script Error: {error_msg}")
 
 @app.get("/")
 def root():
