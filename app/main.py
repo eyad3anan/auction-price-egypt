@@ -9,14 +9,18 @@ GET  /health   →  liveness check
 GET  /docs     →  interactive Swagger UI
 """
 
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys
+import os
+
+# Clean, safe absolute system path insertion for production containers
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 import numpy as np
 
+# This will now find your scripts directory without throwing errors
 from scripts.predict import predict_single
 
 app = FastAPI(
