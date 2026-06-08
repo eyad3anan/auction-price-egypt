@@ -34,16 +34,18 @@ from scripts.feature_engineering import engineer_features
 TARGET = "final_selling_price"
 
 
+import joblib  # Make sure joblib is imported at the top
+
 def load_pipeline():
-    # Pass the full absolute directory path down to load_object so it locates your files
-    encoders          = load_object(os.path.join(MODELS_DIR, "encoders.pkl"))
-    caps              = load_object(os.path.join(MODELS_DIR, "outlier_caps.pkl"))
-    log_cols          = load_object(os.path.join(MODELS_DIR, "log_cols.pkl"))
-    scaler            = load_object(os.path.join(MODELS_DIR, "scaler.pkl"))
-    selected_features = load_object(os.path.join(MODELS_DIR, "selected_features.pkl"))
-    best_bundle       = load_object(os.path.join(MODELS_DIR, "best_model.pkl"))
-    best_model_name   = load_object(os.path.join(MODELS_DIR, "best_model_name.pkl"))
-    return encoders, caps, log_cols, scaler, selected_features, best_bundle, best_model_name
+    # Use joblib directly with our clean absolute paths
+    encoders          = joblib.load(os.path.join(MODELS_DIR, "encoders.pkl"))
+    caps              = joblib.load(os.path.join(MODELS_DIR, "outlier_caps.pkl"))
+    log_cols          = joblib.load(os.path.join(MODELS_DIR, "log_cols.pkl"))
+    scaler            = joblib.load(os.path.join(MODELS_DIR, "scaler.pkl"))
+    selected_features = joblib.load(os.path.join(MODELS_DIR, "selected_features.pkl"))
+    best_bundle       = joblib.load(os.path.join(MODELS_DIR, "best_model.pkl"))
+    best_bundle_name  = joblib.load(os.path.join(MODELS_DIR, "best_model_name.pkl"))
+    return encoders, caps, log_cols, scaler, selected_features, best_bundle, best_bundle_name
 
 # ... Leave everything else beneath this line exactly as it was ...
 
