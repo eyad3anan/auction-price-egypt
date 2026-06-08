@@ -64,14 +64,23 @@ def health():
     return {"status": "ok", "service": "Egyptian Auction Price Predictor"}
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict")
 def predict(listing: AuctionListing):
     try:
         input_dict = listing.model_dump()
         price = predict_single(input_dict)
-        return PredictionResponse(predicted_final_selling_price_egp=price)
+        
+        # Ensure the price is pulled strictly as a primitive float value
+        final_price = float(price) 
+        
+        return {
+            "predicted_final_selling_price_egp": final_price,
+            "currency": "EGP",
+            "model_version": "1.0.0"
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # If it genuinely fails, this will show us the real code trace
+        raise HTTPException(status_code=500, detail=f"Pipeline Error: {str(e)}")
 
 
 @app.get("/")
