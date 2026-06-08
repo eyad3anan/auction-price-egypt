@@ -1,19 +1,20 @@
 """
 predict.py — Phase 6: Final Prediction using the saved best model (ensemble).
-
-Pipeline order:
-  Raw input → strip leakage → drop text → format → encode → outlier cap →
-  log-transform → feature engineering → split (reproduce test) → scale →
-  feature selection → ensemble predict (RF + LGBM + XGB log-blend)
-
-All transformers: .transform() only — nothing is refit on test data.
 """
 
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+import sys
+import os
 import warnings
 warnings.filterwarnings("ignore")
+
+# Safe relative path appending that respects production root directories
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+
+# Dynamically construct the absolute path to your 'models' folder
+MODELS_DIR = os.path.join(ROOT_DIR, "models")
 
 import numpy as np
 import pandas as pd
@@ -34,14 +35,17 @@ TARGET = "final_selling_price"
 
 
 def load_pipeline():
-    encoders          = load_object("encoders.pkl")
-    caps              = load_object("outlier_caps.pkl")
-    log_cols          = load_object("log_cols.pkl")
-    scaler            = load_object("scaler.pkl")
-    selected_features = load_object("selected_features.pkl")
-    best_bundle       = load_object("best_model.pkl")
-    best_model_name   = load_object("best_model_name.pkl")
+    # Pass the full absolute directory path down to load_object so it locates your files
+    encoders          = load_object(os.path.join(MODELS_DIR, "encoders.pkl"))
+    caps              = load_object(os.path.join(MODELS_DIR, "outlier_caps.pkl"))
+    log_cols          = load_object(os.path.join(MODELS_DIR, "log_cols.pkl"))
+    scaler            = load_object(os.path.join(MODELS_DIR, "scaler.pkl"))
+    selected_features = load_object(os.path.join(MODELS_DIR, "selected_features.pkl"))
+    best_bundle       = load_object(os.path.join(MODELS_DIR, "best_model.pkl"))
+    best_model_name   = load_object(os.path.join(MODELS_DIR, "best_model_name.pkl"))
     return encoders, caps, log_cols, scaler, selected_features, best_bundle, best_model_name
+
+# ... Leave everything else beneath this line exactly as it was ...
 
 
 def ensemble_predict(bundle, X):
