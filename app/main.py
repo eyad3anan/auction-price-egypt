@@ -1,11 +1,37 @@
 import sys
 import os
+import urllib.request
+import zipfile
 
-# Absolute system path insertion for production containers
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
-if ROOT_DIR not in sys.path:
-    sys.path.append(ROOT_DIR)
+MODELS_DIR = os.path.join(ROOT_DIR, "models")
+
+# ─────────────────────────────────────────────
+# ONE-TIME AUTOMATIC VOLUME POPULATOR
+# ─────────────────────────────────────────────
+# If the volume is blank, pull down the zip directly inside the cloud host
+if not os.path.exists(os.path.join(MODELS_DIR, "encoders.pkl")):
+    print("Persistent volume detected as empty. Downloading model binaries...")
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    
+    # REPLACE THIS URL with your direct share/download URL for models.zip
+    DOWNLOAD_URL = "https://your-storage-provider.com/s/direct-link-to-models.zip"
+    zip_path = os.path.join(MODELS_DIR, "models.zip")
+    
+    try:
+        # Download the zip file straight onto the Railway volume mount
+        urllib.request.urlretrieve(DOWNLOAD_URL, zip_path)
+        
+        # Unpack the contents right into the volume
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(MODELS_DIR)
+            
+        # Clean up the zip file to save disk space
+        os.remove(zip_path)
+        print("Model binaries successfully written to Railway Volume!")
+    except Exception as download_error:
+        print(f"Volume initialization failed: {str(download_error)}")
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
