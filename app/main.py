@@ -1,26 +1,17 @@
-"""
-app/main.py — FastAPI prediction service for Egyptian Auction Price Prediction.
-
-Run locally:
-    uvicorn app.main:app --reload --port 8000
-
-POST /predict  →  accepts listing features as JSON, returns predicted final_selling_price
-GET  /health   →  liveness check
-GET  /docs     →  interactive Swagger UI
-"""
-
 import sys
 import os
 
-# Clean, safe absolute system path insertion for production containers
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Absolute system path insertion for production containers
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 import numpy as np
 
-# This will now find your scripts directory without throwing errors
 from scripts.predict import predict_single
 
 app = FastAPI(
@@ -29,7 +20,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
 # ─────────────────────────────────────────────
 #  Request / Response schemas
 # ─────────────────────────────────────────────
@@ -37,8 +27,7 @@ class AuctionListing(BaseModel):
     category:            str   = Field(..., example="Mobile Accessories")
     subcategory:         str   = Field(..., example="Cases & Protection")
     brand:               str   = Field(..., example="Apple")
-    condition:           str   = Field(..., example="Like New",
-                                      description="One of: For Parts, Poor, Fair, Good, Very Good, Excellent, Like New, New")
+    condition:           str   = Field(..., example="Like New")
     product_age:         int   = Field(..., ge=0, example=6)
     starting_price:      float = Field(..., gt=0, example=500.0)
     auction_duration:    int   = Field(..., ge=1, le=30, example=7)
@@ -49,12 +38,10 @@ class AuctionListing(BaseModel):
     seller_account_age:  int   = Field(..., ge=0, example=24)
     verified_seller:     int   = Field(..., ge=0, le=1, example=1)
 
-
 class PredictionResponse(BaseModel):
     predicted_final_selling_price_egp: float
     currency: str = "EGP"
     model_version: str = "1.0.0"
-
 
 # ─────────────────────────────────────────────
 #  Endpoints
@@ -63,25 +50,16 @@ class PredictionResponse(BaseModel):
 def health():
     return {"status": "ok", "service": "Egyptian Auction Price Predictor"}
 
-
-@app.post("/predict")
+@app.post("/predict", response_model=PredictionResponse)
 def predict(listing: AuctionListing):
     try:
         input_dict = listing.model_dump()
         price = predict_single(input_dict)
         
-        # Ensure the price is pulled strictly as a primitive float value
-        final_price = float(price) 
-        
-        return {
-            "predicted_final_selling_price_egp": final_price,
-            "currency": "EGP",
-            "model_version": "1.0.0"
-        }
+        # Cast explicitly to native float to prevent schema validation failure
+        return PredictionResponse(predicted_final_selling_price_egp=float(price))
     except Exception as e:
-        # If it genuinely fails, this will show us the real code trace
         raise HTTPException(status_code=500, detail=f"Pipeline Error: {str(e)}")
-
 
 @app.get("/")
 def root():
