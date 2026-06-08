@@ -51,7 +51,6 @@ def load_pipeline():
 
 
 def ensemble_predict(bundle, X):
-    """Log-blend of RF + LGBM + XGB predictions (all trained on log-target)."""
     rf, lgbm, xgb = bundle["rf"], bundle["lgbm"], bundle["xgb"]
     p_rf   = rf.predict(X)
     p_lgbm = lgbm.predict(X)
@@ -157,12 +156,19 @@ def predict_single(input_dict: dict) -> float:
     df_input    = engineer_features(df_input)
     df_input    = df_input.drop(columns=[TARGET], errors="ignore")
 
+    # ... previous code scaling calculations ...
     X_scaled = pd.DataFrame(
         scaler.transform(df_input),
         columns=df_input.columns
     )
+    
+    # Force the data columns to align EXACTLY with the selected features list order
     X_final = X_scaled[selected_features]
-    return round(float(ensemble_predict(bundle, X_final)[0]), 2)
+    
+    # Convert explicitly to a standard NumPy array to remove OS-specific pandas index sorting quirks
+    X_matrix = X_final.to_numpy()
+    
+    return round(float(ensemble_predict(bundle, X_matrix)[0]), 2)
 
 
 if __name__ == "__main__":
